@@ -1,0 +1,118 @@
+.heraldPartyhud {
+    position: fixed;
+    top: 300px;
+    left: 300px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    cursor: move;
+}
+
+
+
+.heraldPartyhud-buttonCollapseContainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+}
+
+.heraldPartyhud-selectPartyButton, .heraldPartyhud-partyCollapseContainer, .heraldPartyhud-npcCollapseContainer {
+    background-color: rgba(0, 0, 0, 0.7);
+    width: 30px;
+    height: 30px;
+    color: white;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    -ms-border-radius: 5px;
+    -o-border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.heraldPartyhud-partyContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.heraldPartyhud-actorMiddleContainer {
+    display: flex;
+}
+
+.heraldPartyhud-actorImageDiv {
+    position: relative;
+    flex: 0 0 auto;
+    width: 41px;
+    height: 41px;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    z-index: 10;
+}
+
+.heraldPartyhud-actorImage {
+    width: 99%;
+    height: 99%;
+    border: none;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    -ms-border-radius: 50%;
+    -o-border-radius: 50%;
+}
+
+.heraldPartyhud-midMiddleActor {
+    width: 100%;
+}
+
+.heraldPartyhud-actorName {
+    position: absolute;
+    font-weight: bold;
+    margin-top: 8px;
+    font-size: 10px;
+    color: white;
+    margin-left: 5px;
+    text-shadow: 2px 2px 4px black;
+}
+
+.heraldPartyhud-actorBarContainer {
+    position: relative;
+    margin-top: 25px;
+    right: 11%;
+    width: 150px;
+    height: 16px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.heraldPartyhud-hpBarBackground {
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
+    background-color: rgb(46, 46, 46);
+    border-radius: 3px;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    -ms-border-radius: 3px;
+    -o-border-radius: 3px;
+}
