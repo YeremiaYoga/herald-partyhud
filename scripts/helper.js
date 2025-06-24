@@ -16,9 +16,19 @@ function heraldPartyhud_dragPosition(el) {
     el.style.top = `${e.clientY - offsetY}px`;
   });
 
-  document.addEventListener("mouseup", () => {
+  document.addEventListener("mouseup", async () => {
+    if (!isDragging) return;
     isDragging = false;
     document.body.style.userSelect = "auto";
+
+    const top = el.style.top;
+    const left = el.style.left;
+    const positionValue = `${top}|${left}`;
+    await game.settings.set(
+      "herald-partyhud",
+      "partyhudLocation",
+      positionValue
+    );
   });
 }
 
