@@ -29,6 +29,7 @@ async function heraldPartyhud_renderHtml() {
     await heraldPartyhud_renderButtonAccess();
     // await heraldPartyhud_renderView();
     helper.heraldPartyhud_dragPosition(heraldPartyhud);
+    // await heraldPartyhud_universalChecker();
   } catch (err) {
     console.error("Failed to load template heraldHud.html:", err);
   }
@@ -556,14 +557,30 @@ async function heraldPartyhud_updateEffectActor() {
   }
 }
 
+let heraldPartyhud_checkerValue;
+async function heraldPartyhud_universalChecker() {
+  if (heraldPartyhud_checkerValue) {
+    clearInterval(heraldPartyhud_checkerValue);
+  }
+
+  heraldPartyhud_checkerValue = setInterval(async () => {
+    await heraldPartyhud_updateEffectActor();
+  }, 6000);
+}
 Hooks.on("updateActor", async (actor, data) => {
   await heraldPartyhud_updateDataActor();
 });
 
-Hooks.on("createActiveEffect", async (effect) => {});
+Hooks.on("createActiveEffect", async (effect) => {
+  await heraldPartyhud_updateEffectActor();
+});
 
-Hooks.on("updateEffect", async (effect, changes, options, userId) => {});
+Hooks.on("updateEffect", async (effect, changes, options, userId) => {
+  await heraldPartyhud_updateEffectActor();
+});
 
-Hooks.on("deleteActiveEffect", async (effect) => {});
+Hooks.on("deleteActiveEffect", async (effect) => {
+  await heraldPartyhud_updateEffectActor();
+});
 
 export { heraldPartyhud_renderHtml };
