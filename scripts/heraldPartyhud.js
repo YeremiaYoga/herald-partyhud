@@ -29,7 +29,8 @@ async function heraldPartyhud_renderHtml() {
     await heraldPartyhud_renderButtonAccess();
     // await heraldPartyhud_renderView();
     helper.heraldPartyhud_dragPosition(heraldPartyhud);
-    // await heraldPartyhud_universalChecker();
+    await heraldPartyhud_universalChecker();
+    await heraldPartyhud_renderParty();
   } catch (err) {
     console.error("Failed to load template heraldHud.html:", err);
   }
@@ -49,10 +50,7 @@ async function heraldPartyhud_renderButtonAccess() {
     "heraldPartyhud-partyCollapseContainer"
   );
   if (partyCollapseBtn) {
-    partyCollapseBtn.addEventListener("click", async () => {
-      console.log("Party Collapse Button clicked");
-      // TODO: Tambahkan logika collapse party view
-    });
+    partyCollapseBtn.addEventListener("click", async () => {});
   }
 
   const npcCollapseBtn = document.getElementById(
@@ -104,10 +102,15 @@ async function heraldPartyhud_selectPartyDialog() {
       pj.pages.some((page) => page.name === `${userUuid} | ${actorUuid}`);
 
     if (hasPage) {
+      const selectedParty = await game.settings.get(
+        "herald-partyhud",
+        "partyhudSelected"
+      );
+      const isChecked = selectedParty === pj.id ? "checked" : "";
       listRadioButton += `
         <div style="margin-bottom: 5px;">
           <label>
-            <input type="radio" name="party-choice" value="${pj.id}">
+            <input type="radio" name="party-choice" value="${pj.id}" ${isChecked}>
             ${pj.name}
           </label>
         </div>
@@ -136,25 +139,30 @@ async function heraldPartyhud_selectPartyDialog() {
             .find("input[name='party-choice']:checked")
             .val();
           if (selectedId) {
-            heraldPartyhud_listPlayerParty = [];
-            const journal = game.journal.get(selectedId);
-            const pages = journal.pages;
+            // heraldPartyhud_listPlayerParty = [];
+            // const journal = game.journal.get(selectedId);
+            // const pages = journal.pages;
 
-            for (let page of pages) {
-              const parts = page.name.split("|").map((s) => s.trim());
+            await game.settings.set(
+              "herald-partyhud",
+              "partyhudSelected",
+              selectedId
+            );
+            // for (let page of pages) {
+            //   const parts = page.name.split("|").map((s) => s.trim());
 
-              if (parts.length === 2) {
-                const userUuid = parts[0];
-                const actorUuid = parts[1];
+            //   if (parts.length === 2) {
+            //     const userUuid = parts[0];
+            //     const actorUuid = parts[1];
 
-                heraldPartyhud_listPlayerParty.push({
-                  userUuid,
-                  actorUuid,
-                  journalId: journal.id,
-                  pageId: page.id,
-                });
-              }
-            }
+            //     heraldPartyhud_listPlayerParty.push({
+            //       userUuid,
+            //       actorUuid,
+            //       journalId: journal.id,
+            //       pageId: page.id,
+            //     });
+            //   }
+            // }
             await heraldPartyhud_renderParty();
           }
         },
@@ -172,6 +180,34 @@ async function heraldPartyhud_selectPartyDialog() {
 
 async function heraldPartyhud_renderParty() {
   let partyContainer = document.getElementById("heraldPartyhud-partyContainer");
+  const selectedParty = await game.settings.get(
+    "herald-partyhud",
+    "partyhudSelected"
+  );
+
+  if (!selectedParty) {
+    return;
+  }
+
+  heraldPartyhud_listPlayerParty = [];
+
+  const journal = game.journal.get(selectedParty);
+  const pages = journal.pages;
+  for (let page of pages) {
+    const parts = page.name.split("|").map((s) => s.trim());
+
+    if (parts.length === 2) {
+      const userUuid = parts[0];
+      const actorUuid = parts[1];
+
+      heraldPartyhud_listPlayerParty.push({
+        userUuid,
+        actorUuid,
+        journalId: journal.id,
+        pageId: page.id,
+      });
+    }
+  }
 
   let arrParty = "";
 
@@ -180,7 +216,6 @@ async function heraldPartyhud_renderParty() {
     const user = game.users.get(rawUserId);
     const userColor = user.color;
     const actor = await fromUuid(data.actorUuid);
-
     arrParty += `
     <div id="heraldPartyhud-playerContainer" class="heraldPartyhud-playerContainer">
       <div id="heraldPartyhud-actorContainer" class="heraldPartyhud-actorContainer">
@@ -189,9 +224,11 @@ async function heraldPartyhud_renderParty() {
         </div>
         <div id="heraldPartyhud-actorMiddleContainer" class="heraldPartyhud-actorMiddleContainer">
           <div id="heraldPartyhud-leftMiddleActor" class="heraldPartyhud-leftMiddleActor">
-            <div id="heraldPartyhud-actorImageContainer" class="heraldPartyhud-actorImageContainer">
+            <div id="heraldPartyhud-actorImageContainer" class="heraldPartyhud-actorImageContainer" data-actor-id="${actor.uuid}">
               <div id="heraldPartyhud-actorImageDiv" class="heraldPartyhud-actorImageDiv" style="border: 2.5px solid ${userColor};">
-                 <img src="${actor.img}" alt="Image" class="heraldPartyhud-actorImage"  />
+                  <img src="${actor.img}" alt="Image" class="heraldPartyhud-actorImage"  />
+                  <div id="heraldPartyhud-actorTooltipContainer" class="heraldPartyhud-actorTooltipContainer" data-actor-id="${actor.uuid}" style="display: none;" >
+                  </div>
               </div>
             </div>
           </div>
@@ -236,9 +273,164 @@ async function heraldPartyhud_renderParty() {
 
   if (partyContainer) {
     partyContainer.innerHTML = arrParty;
+
+    document
+      .querySelectorAll(".heraldPartyhud-actorImageContainer")
+      .forEach((container) => {
+        const tooltip = container.querySelector(
+          ".heraldPartyhud-actorTooltipContainer"
+        );
+        const actorId = container.getAttribute("data-actor-id");
+        container.addEventListener("mouseenter", () => {
+          if (tooltip) tooltip.style.display = "block";
+        });
+
+        container.addEventListener("mouseleave", () => {
+          if (tooltip) tooltip.style.display = "none";
+        });
+        container.addEventListener("dblclick", async (event) => {
+          const token = await fromUuid(actorId);
+
+          if (token) {
+            token.sheet.render(true);
+          } else {
+            console.warn("Token not found on the current scene.");
+          }
+        });
+        // container.addEventListener("click", async (event) => {
+        //   const playerlistId = container.getAttribute("data-playerlist-id");
+
+        //   const actorData = heraldPlayerlist_listActorCanvas.find(
+        //     (item) => item.playerlistId === playerlistId
+        //   );
+
+        //   if (actorData && actorData.token) {
+        //     const targetToken = actorData.token;
+
+        //     targetToken.control({ releaseOthers: true });
+        //     canvas.pan({ x: targetToken.x, y: targetToken.y });
+        //   }
+        // });
+      });
   }
   await heraldPartyhud_updateDataActor();
   await heraldPartyhud_updateEffectActor();
+  await heraldPartyhud_updateAttributeActor();
+}
+
+async function heraldPartyhud_updateAttributeActor() {
+  for (let data of heraldPartyhud_listPlayerParty) {
+    const actor = await fromUuid(data.actorUuid);
+
+    const hp = actor.system.attributes.hp.value;
+    const maxHp = actor.system.attributes.hp.max;
+    let tempHp = actor.system.attributes.hp.temp || 0;
+    const tempMaxHp = actor.system.attributes.hp.tempmax || 0;
+    const totalMaxHp = maxHp + tempMaxHp;
+    const hpPercent = (hp / totalMaxHp) * 100;
+    let ac = actor.system.attributes.ac.value;
+    let arrClassActor = [];
+    for (let item of actor.items) {
+      if (item.type === "class") {
+        arrClassActor.push(item.name);
+      }
+    }
+    let classActorValue = arrClassActor.join("/");
+    let tempmaxhptext = "";
+    if (tempMaxHp) {
+      if (tempMaxHp > 0) {
+        tempmaxhptext = `(+${tempMaxHp})`;
+      } else {
+        tempmaxhptext = `(${tempMaxHp})`;
+      }
+    }
+    // const movement = actor.system.attributes.movement;
+    // const movementUnits = movement.units;
+    // const movementTypes = [
+    //   { key: "burrow", icon: "fa-solid fa-shovel" },
+    //   { key: "climb", icon: "fa-solid fa-hill-rockslide" },
+    //   {
+    //     key: "fly",
+    //     icon: movement.hover ? "fa-solid fa-dove" : "fa-brands fa-fly",
+    //     suffix: movement.hover ? " (Hover)" : "",
+    //   },
+    //   { key: "swim", icon: "fa-solid fa-person-swimming" },
+    //   { key: "walk", icon: "fas fa-shoe-prints" },
+    // ];
+
+    // let movementHTML = "";
+    // let movementCount = 0;
+
+    // for (const { key, icon, suffix = "" } of movementTypes) {
+    //   const value = movement[key];
+    //   if (value) {
+    //     movementCount++;
+    //     movementHTML += `
+    //   <div>
+    //     <i class="${icon}" style="margin-right: 5px;"></i> ${value} ${movementUnits}.${suffix}
+    //   </div>`;
+    //   }
+    // }
+
+    const system = actor.system;
+
+    const skills = [
+      { value: system.skills.prc.passive, icon: "fa-solid fa-eye" },
+      {
+        value: system.skills.inv.passive,
+        icon: "fa-solid fa-magnifying-glass",
+      },
+      { value: system.skills.ins.passive, icon: "fa-solid fa-brain" },
+    ];
+
+    let insightHTML = "";
+
+    for (const { value, icon } of skills) {
+      insightHTML += `
+    <div>
+      <i class="${icon}" style="margin-right: 5px;"></i> ${value || 0}
+    </div>`;
+    }
+
+    const actorTooltip = document.querySelector(
+      `.heraldPartyhud-actorTooltipContainer[data-actor-id="${actor.uuid}"]`
+    );
+    if (actorTooltip) {
+      actorTooltip.innerHTML = `
+      <div id="heraldPartyhud-actorTooltipTop" class="heraldPartyhud-actorTooltipTop">
+        <h3>${actor.name}</h3>
+         
+      </div>
+      <div id="heraldPartyhud-actorTooltipMiddle" class="heraldPartyhud-actorTooltipMiddle">
+        <div id="heraldPartyhud-leftMiddleTooltip" class="heraldPartyhud-leftMiddleTooltip">
+          <div >
+            <i class="fas fa-heart" style="margin-right: 5px;"></i>  ${hp}/${totalMaxHp} ${tempmaxhptext} HP
+          </div>
+          <div>
+            <i class="fas fa-shield-alt" style="margin-right: 5px;"></i> ${
+              ac || 0
+            } AC
+          </div>
+        </div>
+        <div id="heraldPartyhud-rightMiddleTooltip" class="heraldPartyhud-rightMiddleTooltip">
+          ${insightHTML}
+        </div>
+      </div>
+      <div id="heraldPartyhud-actorTooltipBottom" class="heraldPartyhud-actorTooltipBottom">
+        <div  class="heraldPartyhud-topBottomTooltip">
+        </div>
+        <div  class="heraldPartyhud-bottomBottomTooltip">
+          <div>Level ${actor.system.details?.level || "Unknown"}</div>
+          <div> ${classActorValue || "Unknown"}</div>
+          <div> - </div>
+          <div>
+            <div> ${actor.system.details?.race || "Unknown"}</div>
+          </div>
+        </div>
+      </div>
+      `;
+    }
+  }
 }
 
 async function heraldPartyhud_updateDataActor() {
@@ -257,12 +449,12 @@ async function heraldPartyhud_updateDataActor() {
     }
     let ac = actor.system.attributes.ac.value;
 
-    // if (tempHp > totalMaxHp) {
-    //   tempHp = totalMaxHp;
-    //   actor.update({
-    //     "system.attributes.hp.temp": totalMaxHp,
-    //   });
-    // }
+    if (tempHp > totalMaxHp) {
+      tempHp = totalMaxHp;
+      actor.update({
+        "system.attributes.hp.temp": totalMaxHp,
+      });
+    }
 
     const hpBar = document.querySelector(
       `.heraldPartyhud-hpBar[data-actor-id="${actor.uuid}"]`
@@ -482,57 +674,65 @@ async function heraldPartyhud_updateEffectActor() {
       document
         .querySelectorAll(".heraldPartyhud-effectContainer")
         .forEach((item) => {
-          const detailDiv = item.querySelector(".heraldPartyhud-effectTooltip");
+          // const detailDiv = item.querySelector(".heraldPartyhud-effectTooltip");
           const effectId = item.getAttribute("data-effect-id");
-          // const detailDiv = document.querySelector(
-          //   `.heraldPartyhud-listEffectTooltip[data-actor-id="${actor.uuid}"]`
-          // );
+          const detailDiv = document.querySelector(
+            `.heraldPartyhud-listEffectTooltip[data-actor-id="${actor.uuid}"]`
+          );
 
           if (!item.hasAttribute("data-hover-listener")) {
-            item.addEventListener("mouseenter", () => {
-              //   const effect = arrEffect.find((e) => e.id === effectId);
+            item.addEventListener("mouseenter", async () => {
+              const effect = arrEffect.find((e) => e.id === effectId);
 
-              //   let stackDiv = "";
-              //   if (/\(\d+\)/.test(effect.name)) {
-              //     const match = effect.name.match(/\((\d+)\)/);
-              //     if (match) {
-              //       const number = parseInt(match[1], 10);
-              //       stackDiv = `<div class="heraldPartyhud-stackEffect">${number}</div>`;
-              //     }
-              //   }
-              //   let durationDiv = "";
-              //   if (effect.duration.remaining > 0) {
-              //     let totalSeconds = effect.duration.remaining || 0;
-              //     let rounds = Math.floor(totalSeconds / 6);
-              //     let secondsLeft = totalSeconds % 6;
-              //     let secondText = ``;
-              //     if (secondsLeft > 0) {
-              //       secondText = `(${secondsLeft} Second)`;
-              //     }
-              //     durationDiv = `
-              // <div class="heraldPartyhud-detailEffectDuration">
-              //   (${rounds} Round)${secondText}
-              // </div>`;
-              //   }
-              //   let effectDisabled = "";
+              let stackDiv = "";
+              if (/\(\d+\)/.test(effect.name)) {
+                const match = effect.name.match(/\((\d+)\)/);
+                if (match) {
+                  const number = parseInt(match[1], 10);
+                  stackDiv = `<div class="heraldPartyhud-stackEffect">${number}</div>`;
+                }
+              }
+              let durationDiv = "";
+              if (effect.duration.remaining > 0) {
+                let totalSeconds = effect.duration.remaining || 0;
+                let rounds = Math.floor(totalSeconds / 6);
+                let secondsLeft = totalSeconds % 6;
+                let secondText = ``;
+                if (secondsLeft > 0) {
+                  secondText = `(${secondsLeft} Second)`;
+                }
+                durationDiv = `
+              <div class="heraldPartyhud-detailEffectDuration">
+                (${rounds} Round)${secondText}
+              </div>`;
+              }
+              let effectDisabled = "";
 
-              //   if (effect.disabled) {
-              //     effectDisabled = `<div class="heraldPartyhud-detailEffectDisable">Disabled</div>`;
-              //   }
+              if (effect.disabled) {
+                effectDisabled = `<div class="heraldPartyhud-detailEffectDisable">Disabled</div>`;
+              }
+              const enrichedDescription = await TextEditor.enrichHTML(
+                effect.description ?? "",
+                {
+                  async: true,
+                  secrets: true,
+                  documents: true,
+                }
+              );
 
               if (detailDiv) {
-                // detailDiv.innerHTML = `
-                // <h3>${effect.name}</h3>
-                // <div>
-                //   <div>${effect.description}</div>
-                // </div>
-                // <div id="heraldPartyhud-detailEffectBottom" class="heraldPartyhud-detailEffectBottom">
-                //   <div id="heraldPartyhud-detailEffectType" class="heraldPartyhud-detailEffectType">
-                //     ${effect.isTemporary ? "Temporary" : "Passive"}
-                //   </div>
-                //   ${durationDiv}
-                //   ${effectDisabled}
-                // </div>`;
+                detailDiv.innerHTML = `
+                <h3>${effect.name}</h3>
+                <div>
+                  <div>${enrichedDescription}</div>
+                </div>
+                <div id="heraldPartyhud-detailEffectBottom" class="heraldPartyhud-detailEffectBottom">
+                  <div id="heraldPartyhud-detailEffectType" class="heraldPartyhud-detailEffectType">
+                    ${effect.isTemporary ? "Temporary" : "Passive"}
+                  </div>
+                  ${durationDiv}
+                  ${effectDisabled}
+                </div>`;
                 detailDiv.style.display = "block";
               }
             });
@@ -573,14 +773,17 @@ Hooks.on("updateActor", async (actor, data) => {
 
 Hooks.on("createActiveEffect", async (effect) => {
   await heraldPartyhud_updateEffectActor();
+  await heraldPartyhud_updateDataActor();
 });
 
 Hooks.on("updateEffect", async (effect, changes, options, userId) => {
   await heraldPartyhud_updateEffectActor();
+  await heraldPartyhud_updateDataActor();
 });
 
 Hooks.on("deleteActiveEffect", async (effect) => {
   await heraldPartyhud_updateEffectActor();
+  await heraldPartyhud_updateDataActor();
 });
 
 export { heraldPartyhud_renderHtml };

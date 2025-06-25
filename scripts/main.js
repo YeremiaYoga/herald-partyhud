@@ -15,4 +15,13 @@ Hooks.once("init", () => {
     type: String,
     default: "600px|300px",
   });
+
+    game.settings.register("herald-partyhud", "partyhudSelected", {
+    name: "Herald Party Hud Selected",
+    hint: "Herald Party Hud Selected",
+    scope: "client",
+    config: true,
+    type: String,
+    default: "",
+  });
 });
