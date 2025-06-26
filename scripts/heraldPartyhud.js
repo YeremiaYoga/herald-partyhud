@@ -1,4 +1,5 @@
 import * as helper from "./helper.js";
+import * as npclist from "./npcList.js";
 
 let heraldPartyhud_listPlayerParty = [];
 
@@ -29,7 +30,6 @@ async function heraldPartyhud_renderHtml() {
     await heraldPartyhud_renderButtonAccess();
     // await heraldPartyhud_renderView();
     helper.heraldPartyhud_dragPosition(heraldPartyhud);
-    await heraldPartyhud_universalChecker();
     await heraldPartyhud_renderParty();
   } catch (err) {
     console.error("Failed to load template heraldHud.html:", err);
@@ -50,7 +50,37 @@ async function heraldPartyhud_renderButtonAccess() {
     "heraldPartyhud-partyCollapseContainer"
   );
   if (partyCollapseBtn) {
-    partyCollapseBtn.addEventListener("click", async () => {});
+    partyCollapseBtn.addEventListener("click", async () => {
+      const collapseValue = await game.settings.get(
+        "herald-partyhud",
+        "collapseParty"
+      );
+
+      await game.settings.set(
+        "herald-partyhud",
+        "collapseParty",
+        !collapseValue
+      );
+
+      if (!collapseValue) {
+        await heraldPartyhud_universalChecker();
+        await heraldPartyhud_renderParty();
+      } else {
+        let partyContainer = document.getElementById(
+          "heraldPartyhud-partyContainer"
+        );
+        if (partyContainer) {
+          partyContainer.innerHTML = "";
+        }
+        clearInterval(heraldPartyhud_checkerValue);
+      }
+
+      await game.settings.set(
+        "herald-partyhud",
+        "collapseParty",
+        !collapseValue
+      );
+    });
   }
 
   const npcCollapseBtn = document.getElementById(
@@ -139,30 +169,13 @@ async function heraldPartyhud_selectPartyDialog() {
             .find("input[name='party-choice']:checked")
             .val();
           if (selectedId) {
-            // heraldPartyhud_listPlayerParty = [];
-            // const journal = game.journal.get(selectedId);
-            // const pages = journal.pages;
-
             await game.settings.set(
               "herald-partyhud",
               "partyhudSelected",
               selectedId
             );
-            // for (let page of pages) {
-            //   const parts = page.name.split("|").map((s) => s.trim());
+            await game.settings.set("herald-partyhud", "collapseParty", true);
 
-            //   if (parts.length === 2) {
-            //     const userUuid = parts[0];
-            //     const actorUuid = parts[1];
-
-            //     heraldPartyhud_listPlayerParty.push({
-            //       userUuid,
-            //       actorUuid,
-            //       journalId: journal.id,
-            //       pageId: page.id,
-            //     });
-            //   }
-            // }
             await heraldPartyhud_renderParty();
           }
         },
@@ -184,8 +197,12 @@ async function heraldPartyhud_renderParty() {
     "herald-partyhud",
     "partyhudSelected"
   );
+  const collapseValue = await game.settings.get(
+    "herald-partyhud",
+    "collapseParty"
+  );
 
-  if (!selectedParty) {
+  if (!selectedParty || !collapseValue) {
     return;
   }
 
@@ -264,8 +281,13 @@ async function heraldPartyhud_renderParty() {
         </div>
     
       </div>
-      <div id="heraldPartyhud-npcContainer" class="heraldPartyhud-npcContainer">
-      
+      <div id="heraldPartyhud-npcListContainer" class="heraldPartyhud-npcListContainer" data-actor-id="${actor.uuid}">
+        <div id="heraldPartyhud-npcCollapseButton" class="heraldPartyhud-npcCollapseButton" data-actor-id="${actor.uuid}">
+        
+        </div>
+        <div id="heraldPartyhud-npcList" class="heraldPartyhud-npcList" data-actor-id="${actor.uuid}">
+        
+        </div>
       </div>
     </div>
     `;
@@ -315,13 +337,22 @@ async function heraldPartyhud_renderParty() {
   }
   await heraldPartyhud_updateDataActor();
   await heraldPartyhud_updateEffectActor();
-  await heraldPartyhud_updateAttributeActor();
+  await heraldPartyhud_updateTooltipDataActor();
+  await heraldPartyhud_renderListNpc();
 }
 
-async function heraldPartyhud_updateAttributeActor() {
+async function heraldPartyhud_renderListNpc() {
+  for (let data of heraldPartyhud_listPlayerParty) {
+    npclist.heraldPartyhud_renderNpcSingleActor(data);
+  }
+}
+
+async function heraldPartyhud_updateTooltipDataActor() {
   for (let data of heraldPartyhud_listPlayerParty) {
     const actor = await fromUuid(data.actorUuid);
-
+    const actorTooltip = document.querySelector(
+      `.heraldPartyhud-actorTooltipContainer[data-actor-id="${actor.uuid}"]`
+    );
     const hp = actor.system.attributes.hp.value;
     const maxHp = actor.system.attributes.hp.max;
     let tempHp = actor.system.attributes.hp.temp || 0;
@@ -344,33 +375,47 @@ async function heraldPartyhud_updateAttributeActor() {
         tempmaxhptext = `(${tempMaxHp})`;
       }
     }
-    // const movement = actor.system.attributes.movement;
-    // const movementUnits = movement.units;
-    // const movementTypes = [
-    //   { key: "burrow", icon: "fa-solid fa-shovel" },
-    //   { key: "climb", icon: "fa-solid fa-hill-rockslide" },
-    //   {
-    //     key: "fly",
-    //     icon: movement.hover ? "fa-solid fa-dove" : "fa-brands fa-fly",
-    //     suffix: movement.hover ? " (Hover)" : "",
-    //   },
-    //   { key: "swim", icon: "fa-solid fa-person-swimming" },
-    //   { key: "walk", icon: "fas fa-shoe-prints" },
-    // ];
 
-    // let movementHTML = "";
-    // let movementCount = 0;
+    let actorTooltipWidth = 300;
+    let actorTooltipheight = 175;
+    let widthIncrementTooltip = 10;
+    let heightIncrementTooltip = 15;
+    const movement = actor.system.attributes.movement;
+    const movementUnits = movement.units;
+    const movementTypes = [
+      { key: "burrow", icon: "fa-solid fa-shovel" },
+      { key: "climb", icon: "fa-solid fa-hill-rockslide" },
+      {
+        key: "fly",
+        icon: movement.hover ? "fa-solid fa-dove" : "fa-brands fa-fly",
+        suffix: movement.hover ? " (Hover)" : "",
+      },
+      { key: "swim", icon: "fa-solid fa-person-swimming" },
+      { key: "walk", icon: "fas fa-shoe-prints" },
+    ];
 
-    // for (const { key, icon, suffix = "" } of movementTypes) {
-    //   const value = movement[key];
-    //   if (value) {
-    //     movementCount++;
-    //     movementHTML += `
-    //   <div>
-    //     <i class="${icon}" style="margin-right: 5px;"></i> ${value} ${movementUnits}.${suffix}
-    //   </div>`;
-    //   }
-    // }
+    let movementHTML = "";
+    let movementCount = 0;
+
+    for (const { key, icon, suffix = "" } of movementTypes) {
+      const value = movement[key];
+      if (value) {
+        movementCount++;
+        movementHTML += `
+      <div>
+        <i class="${icon}" style="margin-right: 5px;"></i> ${value} ${movementUnits}.${suffix}
+      </div>`;
+      }
+    }
+    const widthTooltip =
+      actorTooltipWidth + (movementCount - 1) * widthIncrementTooltip;
+    const heightTooltip =
+      actorTooltipheight + (movementCount - 1) * heightIncrementTooltip;
+
+    if (actorTooltip) {
+      actorTooltip.style.width = `${widthTooltip}px`;
+      actorTooltip.style.height = `${heightTooltip}px`;
+    }
 
     const system = actor.system;
 
@@ -384,7 +429,15 @@ async function heraldPartyhud_updateAttributeActor() {
     ];
 
     let insightHTML = "";
-
+    let inspirationHtml = "";
+    let inspirationValue = actor.system.attributes.inspiration;
+    if (inspirationValue) {
+      inspirationHtml = `
+        <div style="margin-right:10px;">
+          <i class="fa-brands fa-phoenix-squadron" style="font-size: 24px; color: orange;"></i>
+        </div>
+      `;
+    }
     for (const { value, icon } of skills) {
       insightHTML += `
     <div>
@@ -392,9 +445,6 @@ async function heraldPartyhud_updateAttributeActor() {
     </div>`;
     }
 
-    const actorTooltip = document.querySelector(
-      `.heraldPartyhud-actorTooltipContainer[data-actor-id="${actor.uuid}"]`
-    );
     if (actorTooltip) {
       actorTooltip.innerHTML = `
       <div id="heraldPartyhud-actorTooltipTop" class="heraldPartyhud-actorTooltipTop">
@@ -411,6 +461,7 @@ async function heraldPartyhud_updateAttributeActor() {
               ac || 0
             } AC
           </div>
+          ${movementHTML}
         </div>
         <div id="heraldPartyhud-rightMiddleTooltip" class="heraldPartyhud-rightMiddleTooltip">
           ${insightHTML}
@@ -418,6 +469,7 @@ async function heraldPartyhud_updateAttributeActor() {
       </div>
       <div id="heraldPartyhud-actorTooltipBottom" class="heraldPartyhud-actorTooltipBottom">
         <div  class="heraldPartyhud-topBottomTooltip">
+          ${inspirationHtml}
         </div>
         <div  class="heraldPartyhud-bottomBottomTooltip">
           <div>Level ${actor.system.details?.level || "Unknown"}</div>
@@ -755,6 +807,7 @@ async function heraldPartyhud_updateEffectActor() {
         });
     }
   }
+  await heraldPartyhud_universalChecker();
 }
 
 let heraldPartyhud_checkerValue;
@@ -769,6 +822,8 @@ async function heraldPartyhud_universalChecker() {
 }
 Hooks.on("updateActor", async (actor, data) => {
   await heraldPartyhud_updateDataActor();
+  await heraldPartyhud_updateTooltipDataActor();
+  await heraldPartyhud_renderListNpc();
 });
 
 Hooks.on("createActiveEffect", async (effect) => {
@@ -784,6 +839,10 @@ Hooks.on("updateEffect", async (effect, changes, options, userId) => {
 Hooks.on("deleteActiveEffect", async (effect) => {
   await heraldPartyhud_updateEffectActor();
   await heraldPartyhud_updateDataActor();
+});
+
+Hooks.once("renderDialog", (app, html, data) => {
+  html.closest(".dialog").css("z-index", 1000);
 });
 
 export { heraldPartyhud_renderHtml };

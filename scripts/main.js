@@ -16,12 +16,21 @@ Hooks.once("init", () => {
     default: "600px|300px",
   });
 
-    game.settings.register("herald-partyhud", "partyhudSelected", {
+  game.settings.register("herald-partyhud", "partyhudSelected", {
     name: "Herald Party Hud Selected",
     hint: "Herald Party Hud Selected",
     scope: "client",
     config: true,
     type: String,
     default: "",
+  });
+
+  game.settings.register("herald-partyhud", "collapseParty", {
+    name: "Herald Party Hud Collapse Party",
+    hint: "Herald Party Hud Collapse Party",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
   });
 });

@@ -32,4 +32,22 @@ function heraldPartyhud_dragPosition(el) {
   });
 }
 
-export { heraldPartyhud_dragPosition };
+function heraldPartyhud_getNpcActorsInSceneOwnedByUser(user) {
+  const tokens = canvas.tokens.placeables;
+  const npcTokens = tokens.filter((token) => {
+    const actor = token.actor;
+    if (!actor) return false;
+
+    const isNpc = actor.type === "npc";
+    const isOwned =
+      actor.ownership?.[user.id] >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+    return isNpc && isOwned;
+  });
+
+  return npcTokens.map((token) => token.actor);
+}
+
+export {
+  heraldPartyhud_dragPosition,
+  heraldPartyhud_getNpcActorsInSceneOwnedByUser,
+};
