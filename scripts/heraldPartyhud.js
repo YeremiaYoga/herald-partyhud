@@ -29,7 +29,41 @@ async function heraldPartyhud_renderHtml() {
     heraldPartyhud.style.left = left;
     await heraldPartyhud_renderButtonAccess();
     // await heraldPartyhud_renderView();
-    helper.heraldPartyhud_dragPosition(heraldPartyhud);
+
+    const lockBtn = document.getElementById(
+      "heraldPartyhud-lockPositionButton"
+    );
+
+    if (lockBtn) {
+      const updateLockIcon = (locked) => {
+        lockBtn.innerHTML = locked
+          ? `<i class="fa-solid fa-lock" style="margin-left: 1px"></i>`
+          : `<i class="fa-solid fa-unlock" style="margin-left: 1px"></i>`;
+      };
+
+      let lockPosition = game.settings.get("herald-partyhud", "lockPosition");
+      updateLockIcon(lockPosition);
+
+      lockBtn.addEventListener("click", async () => {
+        lockPosition = !lockPosition;
+        await game.settings.set(
+          "herald-partyhud",
+          "lockPosition",
+          lockPosition
+        );
+        updateLockIcon(lockPosition);
+
+        if (!lockPosition) {
+          helper.heraldPartyhud_dragPosition(heraldPartyhud);
+        } else {
+          heraldPartyhud._dragCleanup?.();
+        }
+      });
+    }
+    const lockPosition = game.settings.get("herald-partyhud", "lockPosition");
+    if (!lockPosition) {
+      helper.heraldPartyhud_dragPosition(heraldPartyhud);
+    }
     await heraldPartyhud_renderParty();
   } catch (err) {
     console.error("Failed to load template heraldHud.html:", err);
@@ -50,12 +84,21 @@ async function heraldPartyhud_renderButtonAccess() {
     "heraldPartyhud-partyCollapseContainer"
   );
   if (partyCollapseBtn) {
+    let collapseValue = await game.settings.get(
+      "herald-partyhud",
+      "collapseParty"
+    );
+
+    if (collapseValue == true) {
+      partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-down" style="margin-left: 1px"></i>`;
+    } else {
+      partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-up" style="margin-left: 1px"></i>`;
+    }
     partyCollapseBtn.addEventListener("click", async () => {
-      const collapseValue = await game.settings.get(
+      collapseValue = await game.settings.get(
         "herald-partyhud",
         "collapseParty"
       );
-
       await game.settings.set(
         "herald-partyhud",
         "collapseParty",
@@ -65,6 +108,7 @@ async function heraldPartyhud_renderButtonAccess() {
       if (!collapseValue) {
         await heraldPartyhud_universalChecker();
         await heraldPartyhud_renderParty();
+        partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-down" style="margin-left: 1px"></i>`;
       } else {
         let partyContainer = document.getElementById(
           "heraldPartyhud-partyContainer"
@@ -73,6 +117,7 @@ async function heraldPartyhud_renderButtonAccess() {
           partyContainer.innerHTML = "";
         }
         clearInterval(heraldPartyhud_checkerValue);
+        partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-up" style="margin-left: 1px"></i>`;
       }
 
       await game.settings.set(
@@ -87,9 +132,33 @@ async function heraldPartyhud_renderButtonAccess() {
     "heraldPartyhud-npcCollapseContainer"
   );
   if (npcCollapseBtn) {
+    let npcCollapse = await game.settings.get("herald-partyhud", "collapseNpc");
+
+    if (npcCollapse == true) {
+      npcCollapseBtn.innerHTML = `<i class="fa-solid fa-expand" style="margin-left: 1px"></i>`;
+    } else {
+      npcCollapseBtn.innerHTML = `<i class="fa-solid fa-users-viewfinder" style="margin-left: 1px"></i>`;
+    }
     npcCollapseBtn.addEventListener("click", async () => {
-      console.log("NPC Collapse Button clicked");
-      // TODO: Tambahkan logika collapse NPC view
+      npcCollapse = await game.settings.get("herald-partyhud", "collapseNpc");
+      await game.settings.set("herald-partyhud", "collapseNpc", !npcCollapse);
+      if (!npcCollapse) {
+        await heraldPartyhud_renderListNpc();
+        npcCollapseBtn.innerHTML = `<i class="fa-solid fa-expand" style="margin-left: 1px"></i>`;
+      } else {
+        console.log("jalan");
+        for (let data of heraldPartyhud_listPlayerParty) {
+          const actor = await fromUuid(data.actorUuid);
+
+          const npcList = document.querySelector(
+            `.heraldPartyhud-npcList[data-actor-id="${actor.uuid}"]`
+          );
+          if (npcList) {
+            npcList.innerHTML = ``;
+          }
+        }
+        npcCollapseBtn.innerHTML = `<i class="fa-solid fa-users-viewfinder" style="margin-left: 1px"></i>`;
+      }
     });
   }
 }
@@ -283,7 +352,7 @@ async function heraldPartyhud_renderParty() {
       </div>
       <div id="heraldPartyhud-npcListContainer" class="heraldPartyhud-npcListContainer" data-actor-id="${actor.uuid}">
         <div id="heraldPartyhud-npcCollapseButton" class="heraldPartyhud-npcCollapseButton" data-actor-id="${actor.uuid}">
-        
+            <i class="fa-solid fa-xmark"></i>
         </div>
         <div id="heraldPartyhud-npcList" class="heraldPartyhud-npcList" data-actor-id="${actor.uuid}">
         
@@ -333,6 +402,32 @@ async function heraldPartyhud_renderParty() {
         //     canvas.pan({ x: targetToken.x, y: targetToken.y });
         //   }
         // });
+      });
+
+    document
+      .querySelectorAll(".heraldPartyhud-npcCollapseButton")
+      .forEach((btn) => {
+        let npcShowList = true;
+        const actorId = btn.getAttribute("data-actor-id");
+
+        btn.addEventListener("click", async (event) => {
+          const actor = await fromUuid(actorId);
+          const data = heraldPartyhud_listPlayerParty.find(
+            (entry) => entry.actorUuid === actorId
+          );
+          const npcList = document.querySelector(
+            `.heraldPartyhud-npcList[data-actor-id="${actor.uuid}"]`
+          );
+          npcShowList = !npcShowList;
+
+          if (npcList) {
+            if (npcShowList) {
+              npclist.heraldPartyhud_renderNpcSingleActor(data);
+            } else {
+              npcList.innerHTML = ``;
+            }
+          }
+        });
       });
   }
   await heraldPartyhud_updateDataActor();
@@ -817,32 +912,36 @@ async function heraldPartyhud_universalChecker() {
   }
 
   heraldPartyhud_checkerValue = setInterval(async () => {
+    await heraldPartyhud_updateDataActor();
     await heraldPartyhud_updateEffectActor();
   }, 6000);
 }
-Hooks.on("updateActor", async (actor, data) => {
-  await heraldPartyhud_updateDataActor();
-  await heraldPartyhud_updateTooltipDataActor();
-  await heraldPartyhud_renderListNpc();
-});
 
-Hooks.on("createActiveEffect", async (effect) => {
-  await heraldPartyhud_updateEffectActor();
-  await heraldPartyhud_updateDataActor();
-});
+Hooks.on("ready", () => {
+  Hooks.on("updateActor", async (actor, data) => {
+    await heraldPartyhud_updateDataActor();
+    await heraldPartyhud_updateTooltipDataActor();
+    await heraldPartyhud_renderListNpc();
+  });
 
-Hooks.on("updateEffect", async (effect, changes, options, userId) => {
-  await heraldPartyhud_updateEffectActor();
-  await heraldPartyhud_updateDataActor();
-});
+  Hooks.on("createActiveEffect", async (effect) => {
+    await heraldPartyhud_updateEffectActor();
+    await heraldPartyhud_updateDataActor();
+  });
 
-Hooks.on("deleteActiveEffect", async (effect) => {
-  await heraldPartyhud_updateEffectActor();
-  await heraldPartyhud_updateDataActor();
-});
+  Hooks.on("updateEffect", async (effect, changes, options, userId) => {
+    await heraldPartyhud_updateEffectActor();
+    await heraldPartyhud_updateDataActor();
+  });
 
-Hooks.once("renderDialog", (app, html, data) => {
-  html.closest(".dialog").css("z-index", 1000);
+  Hooks.on("deleteActiveEffect", async (effect) => {
+    await heraldPartyhud_updateEffectActor();
+    await heraldPartyhud_updateDataActor();
+  });
+
+  Hooks.once("renderDialog", (app, html, data) => {
+    html.closest(".dialog").css("z-index", 1000);
+  });
 });
 
 export { heraldPartyhud_renderHtml };

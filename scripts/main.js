@@ -33,4 +33,20 @@ Hooks.once("init", () => {
     type: Boolean,
     default: false,
   });
+  game.settings.register("herald-partyhud", "collapseNpc", {
+    name: "Herald Party Hud Collapse Npc",
+    hint: "Herald Party Hud Collapse Npc",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+  game.settings.register("herald-partyhud", "lockPosition", {
+    name: "Herald Party Hud Lock Position",
+    hint: "Herald Party Hud Lock Position",
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
 });

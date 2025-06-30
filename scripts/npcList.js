@@ -1,6 +1,11 @@
 import * as helper from "./helper.js";
 
 async function heraldPartyhud_renderNpcSingleActor(data) {
+  let npcCollapse = await game.settings.get("herald-partyhud", "collapseNpc");
+
+  if (!npcCollapse) {
+    return;
+  }
   const rawUserId = data.userUuid.replace("User.", "");
   const user = game.users.get(rawUserId);
   const userColor = user.color;
@@ -12,9 +17,7 @@ async function heraldPartyhud_renderNpcSingleActor(data) {
   let npcListView = ``;
   let arrNpc = helper.heraldPartyhud_getNpcActorsInSceneOwnedByUser(user);
 
-  console.log(npcActor);
   for (let npc of arrNpc) {
-    console.log(npc.uuid);
     npcListView += `
     <div class="heraldPartyhud-npcItem">
         <div id="heraldPartyhud-npcItemTop" class="heraldPartyhud-npcItemTop">
@@ -22,7 +25,7 @@ async function heraldPartyhud_renderNpcSingleActor(data) {
         </div>
         <div id="heraldPartyhud-npcItemMiddle" class="heraldPartyhud-npcItemMiddle">
             <div id="heraldPartyhud-npcBarContainer" class="heraldPartyhud-npcBarContainer">
-                <svg width="50" height="50" viewBox="0 0 100 100" class="heraldPartyhud-npcHpContainer">
+                <svg width="45" height="45" viewBox="0 0 100 100" class="heraldPartyhud-npcHpContainer">
                     <circle cx="50" cy="50" r="45" id="heraldPartyhud-npcHpBackground" class="heraldPartyhud-npcHpBackground"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"  stroke-dasharray="300" stroke-dashoffset="200" />
                     <circle cx="50" cy="50" r="45" id="heraldPartyhud-npcHpBar" class="heraldPartyhud-npcHpBar"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"  stroke-dasharray="300" stroke-dashoffset="200" />
                 </svg>
@@ -30,6 +33,7 @@ async function heraldPartyhud_renderNpcSingleActor(data) {
             <div id="heraldPartyhud-npcImageWrapper" class="heraldPartyhud-npcImageWrapper">
                 <div id="heraldPartyhud-npcImageContainer" class="heraldPartyhud-npcImageContainer" style="border: 2px solid ${userColor};">
                     <img src="${npc.img}" alt="npc" class="heraldPartyhud-npcImageView">
+                    <div class="heraldPartyhud-npcTooltipContainer"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}" style="display: none;"></div>
                 </div>
             </div>
           
@@ -50,8 +54,68 @@ async function heraldPartyhud_renderNpcSingleActor(data) {
   }
   if (npcActor) {
     npcActor.innerHTML = npcListView;
+
+    document
+      .querySelectorAll(".heraldPartyhud-npcImageContainer")
+      .forEach((container) => {
+        const tooltip = container.querySelector(
+          ".heraldPartyhud-npcTooltipContainer"
+        );
+        const actorId = container.getAttribute("data-actor-id");
+        const npcId = container.getAttribute("data-npc-id");
+        container.addEventListener("mouseenter", () => {
+          if (tooltip) tooltip.style.display = "block";
+        });
+
+        container.addEventListener("mouseleave", () => {
+          if (tooltip) tooltip.style.display = "none";
+        });
+        // container.addEventListener("dblclick", async (event) => {
+        //   const token = await fromUuid(actorId);
+
+        //   if (token) {
+        //     token.sheet.render(true);
+        //   } else {
+        //     console.warn("Token not found on the current scene.");
+        //   }
+        // });
+        // container.addEventListener("click", async (event) => {
+        //   const playerlistId = container.getAttribute("data-playerlist-id");
+
+        //   const actorData = heraldPlayerlist_listActorCanvas.find(
+        //     (item) => item.playerlistId === playerlistId
+        //   );
+
+        //   if (actorData && actorData.token) {
+        //     const targetToken = actorData.token;
+
+        //     targetToken.control({ releaseOthers: true });
+        //     canvas.pan({ x: targetToken.x, y: targetToken.y });
+        //   }
+        // });
+      });
   }
   await heraldPartyhud_updateDataNpcSingleActor(data);
+}
+
+async function heraldPartyhud_updateTooltipNpcSingleActor(data) {
+  const rawUserId = data.userUuid.replace("User.", "");
+  const user = game.users.get(rawUserId);
+  const actor = await fromUuid(data.actorUuid);
+  let arrNpc = helper.heraldPartyhud_getNpcActorsInSceneOwnedByUser(user);
+  for (let npc of arrNpc) {
+    const npcTooltip = document.querySelector(
+      `.heraldPartyhud-npcTooltipContainer[data-actor-id="${actor.uuid}"][data-npc-id="${npc.uuid}"]`
+    );
+
+    const hp = npc.system.attributes.hp.value;
+    const maxHp = npc.system.attributes.hp.max;
+    let tempHp = npc.system.attributes.hp.temp || 0;
+    const tempMaxHp = npc.system.attributes.hp.tempmax || 0;
+    const totalMaxHp = maxHp + tempMaxHp;
+    const hpPercent = (hp / totalMaxHp) * 100;
+    let ac = npc.system.attributes.ac.value;
+  }
 }
 
 async function heraldPartyhud_updateDataNpcSingleActor(data) {
