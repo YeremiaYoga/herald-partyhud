@@ -405,20 +405,21 @@ async function heraldPartyhud_renderParty() {
             console.warn("Token not found on the current scene.");
           }
         });
-        // container.addEventListener("click", async (event) => {
-        //   const playerlistId = container.getAttribute("data-playerlist-id");
+        container.addEventListener("click", async (event) => {
+          const id = actorId.replace("Actor.", "");
+          const targetToken = canvas.tokens.placeables.find(
+            (token) => token.actor?.id === id
+          );
 
-        //   const actorData = heraldPlayerlist_listActorCanvas.find(
-        //     (item) => item.playerlistId === playerlistId
-        //   );
-
-        //   if (actorData && actorData.token) {
-        //     const targetToken = actorData.token;
-
-        //     targetToken.control({ releaseOthers: true });
-        //     canvas.pan({ x: targetToken.x, y: targetToken.y });
-        //   }
-        // });
+          if (targetToken) {
+            targetToken.control({ releaseOthers: true });
+            canvas.pan({ x: targetToken.x, y: targetToken.y });
+          } else {
+            console.warn(
+              `Token with actorId ${actorId} not found on current scene.`
+            );
+          }
+        });
       });
 
     document
@@ -514,9 +515,9 @@ async function heraldPartyhud_renderPartyMode2() {
           </svg>
         </div>
         <div id="heraldPartyhud-actorMode2ImageWrapper" class="heraldPartyhud-actorMode2ImageWrapper">
-          <div id="heraldPartyhud-actorMode2ImageContainer" class="heraldPartyhud-actorMode2ImageContainer" style="border: 2px solid ${userColor};">
+          <div id="heraldPartyhud-actorMode2ImageContainer" class="heraldPartyhud-actorMode2ImageContainer" style="border: 2px solid ${userColor};" data-actor-id="${actor.uuid}" >
             <img src="${actor.img}" alt="actorMode2" class="heraldPartyhud-actorMode2ImageView">
-              <div class="heraldPartyhud-actorMode2TooltipContainer"  data-actor-id="${actor.uuid}" style="display: none;"></div>
+            <div class="heraldPartyhud-actorTooltipContainer"  data-actor-id="${actor.uuid}" style="display: none;"></div>
           </div>
         </div>
       </div>
@@ -539,8 +540,50 @@ async function heraldPartyhud_renderPartyMode2() {
 
   if (partyContainer) {
     partyContainer.innerHTML = arrParty;
+
+    document
+      .querySelectorAll(".heraldPartyhud-actorMode2ImageContainer")
+      .forEach((container) => {
+        const tooltip = container.querySelector(
+          ".heraldPartyhud-actorTooltipContainer"
+        );
+        const actorId = container.getAttribute("data-actor-id");
+        container.addEventListener("mouseenter", () => {
+          if (tooltip) tooltip.style.display = "block";
+        });
+
+        container.addEventListener("mouseleave", () => {
+          if (tooltip) tooltip.style.display = "none";
+        });
+        container.addEventListener("dblclick", async (event) => {
+          const token = await fromUuid(actorId);
+
+          if (token) {
+            token.sheet.render(true);
+          } else {
+            console.warn("Token not found on the current scene.");
+          }
+        });
+        container.addEventListener("click", async (event) => {
+          const id = actorId.replace("Actor.", "");
+          const targetToken = canvas.tokens.placeables.find(
+            (token) => token.actor?.id === id
+          );
+
+          if (targetToken) {
+            targetToken.control({ releaseOthers: true });
+            canvas.pan({ x: targetToken.x, y: targetToken.y });
+          } else {
+            console.warn(
+              `Token with actorId ${actorId} not found on current scene.`
+            );
+          }
+        });
+      });
   }
+
   await heraldPartyhud_updateDataActorMode2();
+  await heraldPartyhud_updateTooltipDataActor();
 }
 
 async function heraldPartyhud_updateDataActorMode2() {
@@ -756,7 +799,6 @@ async function heraldPartyhud_updateTooltipDataActor() {
       actorTooltip.innerHTML = `
       <div id="heraldPartyhud-actorTooltipTop" class="heraldPartyhud-actorTooltipTop">
         <h3>${actor.name}</h3>
-         
       </div>
       <div id="heraldPartyhud-actorTooltipMiddle" class="heraldPartyhud-actorTooltipMiddle">
         <div id="heraldPartyhud-leftMiddleTooltip" class="heraldPartyhud-leftMiddleTooltip">

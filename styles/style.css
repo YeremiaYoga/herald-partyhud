@@ -392,7 +392,7 @@
 /***************************************************************** ACTOR MODE 2 **********************************************************************************/
 
 
-.heraldPartyhud-playerContainerMode2{
+.heraldPartyhud-playerContainerMode2 {
     padding-bottom: 10px;
 }
 
@@ -656,7 +656,7 @@
     height: 35px;
     border-radius: 50%;
     background-color: #363636;
-    z-index: 8;
+    z-index: 6;
     cursor: pointer;
 }
 
@@ -666,13 +666,43 @@
     border: none;
     object-fit: cover;
     object-position: center;
-    z-index: 8;
     border-radius: 50%;
 }
 
+.heraldPartyhud-npcTooltipContainer {
+    display: none;
+    position: absolute;
+    bottom: 50px;
+    left: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+    z-index: 12;
+    white-space: nowrap;
+    transform: translateX(10px);
+    width: 275px;
+    height: 175px;
+}
+
+.heraldPartyhud-npcTooltipMiddle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.heraldPartyhud-npcTooltipBottom{
+        display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    gap: 5px;
+}
 .heraldPartyhud-npcAcContainer {
     position: relative;
-    z-index: 10;
 }
 
 .heraldPartyhud-npcAcImage {
@@ -698,3 +728,4 @@
     -ms-transform: translate(-50%, -100%);
     -o-transform: translate(-50%, -100%);
 }
+
