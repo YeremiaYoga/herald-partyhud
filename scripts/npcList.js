@@ -30,13 +30,17 @@ async function heraldPartyhud_renderNpcSingleActor(data) {
                     <circle cx="50" cy="50" r="45" id="heraldPartyhud-npcHpBar" class="heraldPartyhud-npcHpBar"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"  stroke-dasharray="300" stroke-dashoffset="200" />
                 </svg>
             </div>
+            <div id="heraldPartyhud-npcTempBarContainer" class="heraldPartyhud-npcTempBarContainer" data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}">
+                <svg width="54" height="54" viewBox="0 0 100 100" class="heraldPartyhud-npcTempHpContainer">
+                  <circle cx="50" cy="50" r="45" id="heraldPartyhud-npcTempHpBar" class="heraldPartyhud-npcTempHpBar"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"  stroke-dasharray="300" stroke-dashoffset="200" />
+                </svg>
+            </div>
             <div id="heraldPartyhud-npcImageWrapper" class="heraldPartyhud-npcImageWrapper">
                 <div id="heraldPartyhud-npcImageContainer" class="heraldPartyhud-npcImageContainer" style="border: 2px solid ${userColor};">
                     <img src="${npc.img}" alt="npc" class="heraldPartyhud-npcImageView">
                     <div class="heraldPartyhud-npcTooltipContainer"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}" style="display: none;"></div>
                 </div>
             </div>
-          
         </div>
         <div id="heraldPartyhud-npcItemBottom" class="heraldPartyhud-npcItemBottom">
             <div class="heraldPartyhud-npcAcContainer"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}">
@@ -44,7 +48,11 @@ async function heraldPartyhud_renderNpcSingleActor(data) {
                 <img src="/modules/herald-partyhud/assets/ac_icon.webp" alt="Armor Class" class="heraldPartyhud-npcAcImage" />  
             </div>
              <div id="heraldPartyhud-npcBarValueContainer" class="heraldPartyhud-npcBarValueContainer">
-                 <div class="heraldPartyhud-npcHpValue" data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"></div>
+              <div id="heraldPartyhud-npcHpValueContainer" class="heraldPartyhud-npcHpValueContainer">
+                <div class="heraldPartyhud-npcHpValue" data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"></div>
+                <div class="heraldPartyhud-npcTempMaxHpValue" data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"></div>
+              </div>
+              
                  <div class="heraldPartyhud-npcTempHpValue" data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"></div>
             </div>
         </div>
@@ -144,11 +152,19 @@ async function heraldPartyhud_updateDataNpcSingleActor(data) {
       `.heraldPartyhud-npcHpValue[data-actor-id="${actor.uuid}"][data-npc-id="${npc.uuid}"]`
     );
 
+    const npcTempHpBar = document.querySelector(
+      `.heraldPartyhud-npcTempBarContainer[data-actor-id="${actor.uuid}"][data-npc-id="${npc.uuid}"]`
+    );
+
     const npcTempHpValue = document.querySelector(
       `.heraldPartyhud-npcTempHpValue[data-actor-id="${actor.uuid}"][data-npc-id="${npc.uuid}"]`
     );
     const npcAcValue = document.querySelector(
       `.heraldPartyhud-npcAcValue[data-actor-id="${actor.uuid}"][data-npc-id="${npc.uuid}"]`
+    );
+
+    const npcTempMaxHpValue = document.querySelector(
+      `.heraldPartyhud-npcTempMaxHpValue[data-actor-id="${actor.uuid}"][data-npc-id="${npc.uuid}"]`
     );
 
     if (npcHpBar) {
@@ -175,9 +191,37 @@ async function heraldPartyhud_updateDataNpcSingleActor(data) {
       npcHpValue.innerText = hp + "/" + totalMaxHp;
     }
 
-    if (tempHp) {
+    if (tempHp > 0) {
       if (npcTempHpValue) {
         npcTempHpValue.innerText = "+" + tempHp;
+      }
+
+      let npcTempValuebar = 0;
+      npcTempValuebar = 300 - tempPercent;
+      if (npcTempHpBar) {
+        npcTempHpBar.innerHTML = `
+         <svg width="54" height="54" viewBox="0 0 100 100" class="heraldPartyhud-npcTempHpContainer">
+          <circle cx="50" cy="50" r="45" id="heraldPartyhud-npcTempHpBar" class="heraldPartyhud-npcTempHpBar"  data-actor-id="${actor.uuid}" data-npc-id="${npc.uuid}"  stroke-dasharray="300" stroke-dashoffset="${npcTempValuebar}" />
+        </svg>
+        
+        `;
+      }
+    } else {
+      if (npcTempHpValue) {
+        npcTempHpValue.innerText = "";
+      }
+      if (npcTempHpBar) {
+        npcTempHpBar.innerHTML = ``;
+      }
+    }
+
+    if (tempmaxhp && npcTempMaxHpValue) {
+      if (tempmaxhp > 0) {
+        npcTempMaxHpValue.innerText = `(+${tempmaxhp})`;
+        npcTempMaxHpValue.style.color = "#05b4ff"; 
+      } else {
+        npcTempMaxHpValue.innerText = `(${tempmaxhp})`;
+        npcTempMaxHpValue.style.color = "#b0001d"; 
       }
     }
 

@@ -30,8 +30,8 @@ Hooks.once("init", () => {
     hint: "Herald Party Hud Collapse Party",
     scope: "client",
     config: true,
-    type: Boolean,
-    default: false,
+    type: Number,
+    default: 1,
   });
   game.settings.register("herald-partyhud", "collapseNpc", {
     name: "Herald Party Hud Collapse Npc",

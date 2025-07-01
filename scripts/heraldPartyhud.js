@@ -64,7 +64,16 @@ async function heraldPartyhud_renderHtml() {
     if (!lockPosition) {
       helper.heraldPartyhud_dragPosition(heraldPartyhud);
     }
-    await heraldPartyhud_renderParty();
+
+    let collapseValue = await game.settings.get(
+      "herald-partyhud",
+      "collapseParty"
+    );
+    if (collapseValue == 1) {
+      await heraldPartyhud_renderParty();
+    } else if (collapseValue == 2) {
+      await heraldPartyhud_renderPartyMode2();
+    }
   } catch (err) {
     console.error("Failed to load template heraldHud.html:", err);
   }
@@ -89,26 +98,34 @@ async function heraldPartyhud_renderButtonAccess() {
       "collapseParty"
     );
 
-    if (collapseValue == true) {
+    if (collapseValue == 1) {
       partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-down" style="margin-left: 1px"></i>`;
+    } else if (collapseValue == 2) {
+      partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-left" style="margin-left: 1px"></i>`;
     } else {
       partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-up" style="margin-left: 1px"></i>`;
     }
     partyCollapseBtn.addEventListener("click", async () => {
-      collapseValue = await game.settings.get(
-        "herald-partyhud",
-        "collapseParty"
-      );
+      // if (collapseValue == 2) {
+      //   collapseValue = 0;
+      // } else {
+      //   collapseValue = collapseValue + 1;
+      // }
+      collapseValue = (collapseValue + 1) % 3;
       await game.settings.set(
         "herald-partyhud",
         "collapseParty",
-        !collapseValue
+        collapseValue
       );
 
-      if (!collapseValue) {
+      if (collapseValue == 1) {
         await heraldPartyhud_universalChecker();
         await heraldPartyhud_renderParty();
         partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-down" style="margin-left: 1px"></i>`;
+      } else if (collapseValue == 2) {
+        await heraldPartyhud_renderPartyMode2();
+        await heraldPartyhud_universalChecker();
+        partyCollapseBtn.innerHTML = `<i class="fa-solid fa-caret-left" style="margin-left: 1px"></i>`;
       } else {
         let partyContainer = document.getElementById(
           "heraldPartyhud-partyContainer"
@@ -123,7 +140,7 @@ async function heraldPartyhud_renderButtonAccess() {
       await game.settings.set(
         "herald-partyhud",
         "collapseParty",
-        !collapseValue
+        collapseValue
       );
     });
   }
@@ -434,6 +451,201 @@ async function heraldPartyhud_renderParty() {
   await heraldPartyhud_updateEffectActor();
   await heraldPartyhud_updateTooltipDataActor();
   await heraldPartyhud_renderListNpc();
+}
+
+async function heraldPartyhud_renderPartyMode2() {
+  let partyContainer = document.getElementById("heraldPartyhud-partyContainer");
+  const selectedParty = await game.settings.get(
+    "herald-partyhud",
+    "partyhudSelected"
+  );
+  const collapseValue = await game.settings.get(
+    "herald-partyhud",
+    "collapseParty"
+  );
+
+  if (!selectedParty || !collapseValue) {
+    return;
+  }
+
+  heraldPartyhud_listPlayerParty = [];
+
+  const journal = game.journal.get(selectedParty);
+  const pages = journal.pages;
+  for (let page of pages) {
+    const parts = page.name.split("|").map((s) => s.trim());
+
+    if (parts.length === 2) {
+      const userUuid = parts[0];
+      const actorUuid = parts[1];
+
+      heraldPartyhud_listPlayerParty.push({
+        userUuid,
+        actorUuid,
+        journalId: journal.id,
+        pageId: page.id,
+      });
+    }
+  }
+
+  let arrParty = "";
+
+  for (let data of heraldPartyhud_listPlayerParty) {
+    const rawUserId = data.userUuid.replace("User.", "");
+    const user = game.users.get(rawUserId);
+    const userColor = user.color;
+    const actor = await fromUuid(data.actorUuid);
+
+    arrParty += `
+    <div class="heraldPartyhud-playerContainerMode2">
+      <div id="heraldPartyhud-actorTopMode2" class="heraldPartyhud-actorTopMode2">
+          
+      </div>
+      <div id="heraldPartyhud-actorMiddleMode2" class="heraldPartyhud-actorMiddleMode2">
+        <div id="heraldPartyhud-actorMode2BarContainer" class="heraldPartyhud-actorMode2BarContainer">
+          <svg width="53" height="53" viewBox="0 0 100 100" class="heraldPartyhud-actorMode2HpContainer">
+            <circle cx="50" cy="50" r="45" id="heraldPartyhud-actorMode2HpBackground" class="heraldPartyhud-actorMode2HpBackground"  data-actor-id="${actor.uuid}"  stroke-dasharray="340" stroke-dashoffset="200" />
+            <circle cx="50" cy="50" r="45" id="heraldPartyhud-actorMode2HpBar" class="heraldPartyhud-actorMode2HpBar"  data-actor-id="${actor.uuid}"  stroke-dasharray="340" stroke-dashoffset="200" />
+          </svg>
+        </div>
+        <div id="heraldPartyhud-actorMode2TempBarContainer" class="heraldPartyhud-actorMode2TempBarContainer" data-actor-id="${actor.uuid}">
+          <svg width="60" height="60" viewBox="0 0 100 100" class="heraldPartyhud-actorMode2TempHpContainer">
+            <circle cx="50" cy="50" r="45" id="heraldPartyhud-actorMode2TempHpBar" class="heraldPartyhud-actorMode2TempHpBar"  data-actor-id="${actor.uuid}"  stroke-dasharray="340" stroke-dashoffset="200" />
+          </svg>
+        </div>
+        <div id="heraldPartyhud-actorMode2ImageWrapper" class="heraldPartyhud-actorMode2ImageWrapper">
+          <div id="heraldPartyhud-actorMode2ImageContainer" class="heraldPartyhud-actorMode2ImageContainer" style="border: 2px solid ${userColor};">
+            <img src="${actor.img}" alt="actorMode2" class="heraldPartyhud-actorMode2ImageView">
+              <div class="heraldPartyhud-actorMode2TooltipContainer"  data-actor-id="${actor.uuid}" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+      <div id="heraldPartyhud-actorBottomMode2" class="heraldPartyhud-actorBottomMode2">
+        <div class="heraldPartyhud-actorMode2AcContainer"  data-actor-id="${actor.uuid}" >
+          <div class="heraldPartyhud-actorMode2AcValue"  data-actor-id="${actor.uuid}" >10</div>
+            <img src="/modules/herald-partyhud/assets/ac_icon.webp" alt="Armor Class" class="heraldPartyhud-actorMode2AcImage" />  
+          </div>
+          <div id="heraldPartyhud-actorMode2BarValueContainer" class="heraldPartyhud-actorMode2BarValueContainer">
+            <div id="heraldPartyhud-actorMode2HpValueContainer" class="heraldPartyhud-actorMode2HpValueContainer">
+              <div class="heraldPartyhud-actorMode2HpValue" data-actor-id="${actor.uuid}" >10/10</div>
+              <div class="heraldPartyhud-actorMode2TempMaxHpValue" data-actor-id="${actor.uuid}" >(+20)</div>
+            </div>
+              <div class="heraldPartyhud-actorMode2TempHpValue" data-actor-id="${actor.uuid}" >+1</div>
+          </div>
+      </div>
+    </div>
+    `;
+  }
+
+  if (partyContainer) {
+    partyContainer.innerHTML = arrParty;
+  }
+  await heraldPartyhud_updateDataActorMode2();
+}
+
+async function heraldPartyhud_updateDataActorMode2() {
+  for (let data of heraldPartyhud_listPlayerParty) {
+    const actor = await fromUuid(data.actorUuid);
+
+    const hp = actor.system.attributes.hp.value;
+    const maxHp = actor.system.attributes.hp.max;
+    let tempHp = actor.system.attributes.hp.temp || 0;
+    const tempmaxhp = actor.system.attributes.hp.tempmax || 0;
+    const totalMaxHp = maxHp + tempmaxhp;
+    const hpPercent = (hp / totalMaxHp) * 100;
+    let tempPercent = (tempHp / totalMaxHp) * 100;
+    if (tempPercent > 100) {
+      tempPercent = 100;
+    }
+    let ac = actor.system.attributes.ac.value;
+
+    const hpBar = document.querySelector(
+      `.heraldPartyhud-actorMode2HpBar[data-actor-id="${actor.uuid}"]`
+    );
+
+    const hpValue = document.querySelector(
+      `.heraldPartyhud-actorMode2HpValue[data-actor-id="${actor.uuid}"]`
+    );
+    const tempMaxHpValue = document.querySelector(
+      `.heraldPartyhud-actorMode2TempMaxHpValue[data-actor-id="${actor.uuid}"]`
+    );
+
+    const tempValueBar = document.querySelector(
+      `.heraldPartyhud-actorMode2TempBarContainer[data-actor-id="${actor.uuid}"]`
+    );
+
+    const tempHpValue = document.querySelector(
+      `.heraldPartyhud-actorMode2TempHpValue[data-actor-id="${actor.uuid}"]`
+    );
+    const acValue = document.querySelector(
+      `.heraldPartyhud-actorMode2AcValue[data-actor-id="${actor.uuid}"]`
+    );
+
+    if (hpBar) {
+      if (hp > 0) {
+        let hpBarWidth = 200 + ((100 - hpPercent) / 100) * 140;
+        hpBar.style.strokeDashoffset = hpBarWidth;
+
+        let hpColor = "#389454";
+        if (hpPercent < 0) {
+          hpColor = "#8B0000";
+        } else if (hpPercent <= 25) {
+          hpColor = "#bc3c04";
+        } else if (hpPercent <= 50) {
+          hpColor = "#c47404";
+        } else if (hpPercent <= 75) {
+          hpColor = "#8c9c04";
+        } else {
+          hpColor = "#389454";
+        }
+
+        hpBar.style.stroke = hpColor;
+      }
+    }
+    if (hpValue) {
+      hpValue.innerText = hp + "/" + totalMaxHp;
+    }
+
+    if (tempHp > 0) {
+      if (tempHpValue) {
+        tempHpValue.innerText = "+" + tempHp;
+      }
+
+      let tempWidthBar = 0;
+      tempWidthBar = 200 + ((100 - tempPercent) / 100) * 140;
+      if (tempValueBar) {
+        tempValueBar.innerHTML = `
+          <svg width="60" height="60" viewBox="0 0 100 100" class="heraldPartyhud-actorMode2TempHpContainer">
+            <circle cx="50" cy="50" r="45" id="heraldPartyhud-actorMode2TempHpBar" class="heraldPartyhud-actorMode2TempHpBar"  data-actor-id="${actor.uuid}"  stroke-dasharray="340" stroke-dashoffset="${tempWidthBar}" />
+          </svg>
+        
+        `;
+      }
+    } else {
+      if (tempHpValue) {
+        tempHpValue.innerText = "";
+      }
+      if (tempValueBar) {
+        tempValueBar.innerHTML = ``;
+      }
+    }
+
+    if (tempMaxHpValue) {
+      if (tempmaxhp) {
+        if (tempmaxhp > 0) {
+          tempMaxHpValue.innerText = `(+${tempmaxhp})`;
+          tempMaxHpValue.style.color = "#05b4ff";
+        } else {
+          tempMaxHpValue.innerText = `(${tempmaxhp})`;
+          tempMaxHpValue.style.color = "#b0001d";
+        }
+      }
+    }
+
+    if (acValue) {
+      acValue.innerText = ac;
+    }
+  }
 }
 
 async function heraldPartyhud_renderListNpc() {
@@ -922,6 +1134,7 @@ Hooks.on("ready", () => {
     await heraldPartyhud_updateDataActor();
     await heraldPartyhud_updateTooltipDataActor();
     await heraldPartyhud_renderListNpc();
+    await heraldPartyhud_updateDataActorMode2();
   });
 
   Hooks.on("createActiveEffect", async (effect) => {
