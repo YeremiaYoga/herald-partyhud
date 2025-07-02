@@ -357,6 +357,8 @@ async function heraldPartyhud_updateDataNpcSingleActor(data) {
         npcTempMaxHpValue.innerText = `(${tempmaxhp})`;
         npcTempMaxHpValue.style.color = "#b0001d";
       }
+    } else {
+      npcTempMaxHpValue.innerText = ``;
     }
 
     if (npcAcValue) {

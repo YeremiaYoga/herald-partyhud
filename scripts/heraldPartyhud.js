@@ -682,6 +682,8 @@ async function heraldPartyhud_updateDataActorMode2() {
           tempMaxHpValue.innerText = `(${tempmaxhp})`;
           tempMaxHpValue.style.color = "#b0001d";
         }
+      } else {
+        tempMaxHpValue.innerText = ``;
       }
     }
 
@@ -900,23 +902,22 @@ async function heraldPartyhud_updateDataActor() {
           hpValue.innerText = hp + "/" + totalMaxHp;
         }
       } else {
-        let temphpValue = hp;
-        let negativeBlockMax = hp + totalMaxHp;
-        if (negativeBlockMax < 0) {
-          temphpValue = totalMaxHp * -1;
-
-          await actor.data.update({
-            "system.attributes.hp.value": temphpValue,
-          });
-        }
-        const negativeHpPercent = (temphpValue / totalMaxHp) * -100;
-        hpBar.style.width = `${negativeHpPercent}%`;
-        if (negativeHpPercent > 0) {
-          hpBar.style.background = `linear-gradient(to right, ${hpgradient} 2%, ${hp0} 98%)`;
-        }
-        if (hpValue) {
-          hpValue.innerText = temphpValue + "/" + totalMaxHp;
-        }
+        // let temphpValue = hp;
+        // let negativeBlockMax = hp + totalMaxHp;
+        // if (negativeBlockMax < 0) {
+        //   temphpValue = totalMaxHp * -1;
+        //   await actor.data.update({
+        //     "system.attributes.hp.value": temphpValue,
+        //   });
+        // }
+        // const negativeHpPercent = (temphpValue / totalMaxHp) * -100;
+        // hpBar.style.width = `${negativeHpPercent}%`;
+        // if (negativeHpPercent > 0) {
+        //   hpBar.style.background = `linear-gradient(to right, ${hpgradient} 2%, ${hp0} 98%)`;
+        // }
+        // if (hpValue) {
+        //   hpValue.innerText = temphpValue + "/" + totalMaxHp;
+        // }
       }
     }
     if (tempMaxHpValue) {
@@ -928,6 +929,8 @@ async function heraldPartyhud_updateDataActor() {
           tempMaxHpValue.innerText = `(${tempmaxhp})`;
           tempMaxHpValue.style.color = "#b0001d";
         }
+      } else {
+        tempMaxHpValue.innerText = ``;
       }
     }
     if (tempHp && tempHp > 0) {
@@ -1164,9 +1167,17 @@ async function heraldPartyhud_universalChecker() {
   if (heraldPartyhud_checkerValue) {
     clearInterval(heraldPartyhud_checkerValue);
   }
-
+  let collapseValue = await game.settings.get(
+    "herald-partyhud",
+    "collapseParty"
+  );
   heraldPartyhud_checkerValue = setInterval(async () => {
-    await heraldPartyhud_updateDataActor();
+    if (collapseValue == 1) {
+      await heraldPartyhud_renderParty();
+    } else if (collapseValue == 2) {
+      await heraldPartyhud_renderPartyMode2();
+    }
+
     await heraldPartyhud_updateEffectActor();
   }, 6000);
 }
@@ -1182,16 +1193,19 @@ Hooks.on("ready", () => {
   Hooks.on("createActiveEffect", async (effect) => {
     await heraldPartyhud_updateEffectActor();
     await heraldPartyhud_updateDataActor();
+    await heraldPartyhud_renderPartyMode2();
   });
 
   Hooks.on("updateEffect", async (effect, changes, options, userId) => {
     await heraldPartyhud_updateEffectActor();
     await heraldPartyhud_updateDataActor();
+    await heraldPartyhud_renderPartyMode2();
   });
 
   Hooks.on("deleteActiveEffect", async (effect) => {
     await heraldPartyhud_updateEffectActor();
     await heraldPartyhud_updateDataActor();
+    await heraldPartyhud_renderPartyMode2();
   });
 
   Hooks.once("renderDialog", (app, html, data) => {
