@@ -1208,9 +1208,9 @@ Hooks.on("ready", () => {
     await heraldPartyhud_renderPartyMode2();
   });
 
-  Hooks.once("renderDialog", (app, html, data) => {
-    html.closest(".dialog").css("z-index", 1000);
-  });
+  // Hooks.once("renderDialog", (app, html, data) => {
+  //   html.closest(".dialog").css("z-index", 1000);
+  // });
 });
 
 export { heraldPartyhud_renderHtml };
